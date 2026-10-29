@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labas &bull; Cyber-Romantic Signal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        serif: ['Cinzel', 'serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        cyberDark: '#080811',
+                        cyberCard: '#10101f',
+                        neonBlue: '#00f3ff',
+                        cyberPink: '#ff007f',
+                        neonRose: '#ff2a5f',
+                        neonOrange: '#ff8c00',
+                        textLight: '#f3f4f6',
+                        textDim: '#9ca3af'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #080811;
+            color: #f3f4f6;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Background Particle Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Cyber Glowing Framed Cards */
+        .cyber-card {
+            background: linear-gradient(135deg, rgba(16, 16, 31, 0.85) 0%, rgba(20, 10, 30, 0.9) 100%);
+            border: 1.5px solid rgba(255, 0, 127, 0.4);
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.15), inset 0 0 15px rgba(0, 243, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 1.25rem;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cyber-card:hover {
+            border-color: rgba(0, 243, 255, 0.7);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.25), inset 0 0 20px rgba(255, 0, 127, 0.1);
+        }
+
+        .cyber-card::before {
+            content: '♥';
+            position: absolute;
+            top: -12px;
+            left: 24px;
+            color: #ff007f;
+            background: #080811;
+            padding: 0 8px;
+            font-size: 13px;
+            text-shadow: 0 0 8px #ff007f;
+            z-index: 10;
+        }
+
+        .cyber-card::after {
+            content: '♥';
+            position: absolute;
+            bottom: -12px;
+            right: 24px;
+            color: #00f3ff;
+            background: #080811;
+            padding: 0 8px;
+            font-size: 13px;
+            text-shadow: 0 0 8px #00f3ff;
+            z-index: 10;
+        }
+
+        .cyber-inner {
+            border: 1px dashed rgba(0, 243, 255, 0.3);
+            border-radius: 0.875rem;
+        }
+
+        /* Glow effects */
+        .glow-pink { text-shadow: 0 0 10px rgba(255, 0, 127, 0.7); }
+        .glow-blue { text-shadow: 0 0 10px rgba(0, 243, 255, 0.7); }
+        .glow-orange { text-shadow: 0 0 10px rgba(255, 140, 0, 0.7); }
+
+        /* Custom inputs */
+        .cyber-input {
+            background-color: rgba(10, 10, 22, 0.8);
+            border: 1.5px solid rgba(255, 0, 127, 0.4);
+            color: #f3f4f6;
+            transition: all 0.2s ease;
+        }
+
+        .cyber-input:focus {
+            border-color: #00f3ff;
+            outline: none;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
+        }
+
+        /* Buttons */
+        .btn-cyber-pink {
+            background: linear-gradient(135deg, #ff007f 0%, #ff2a5f 100%);
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .btn-cyber-pink:hover {
+            box-shadow: 0 0 22px rgba(255, 0, 127, 0.7);
+            transform: translateY(-1px);
+        }
+
+        /* Editable highlight mode */
+        .edit-mode-active [contenteditable="true"] {
+            outline: 2px dashed #00f3ff !important;
+            background: rgba(0, 243, 255, 0.08) !important;
+            border-radius: 4px;
+            padding: 2px 4px;
+            cursor: text;
+        }
+
+        .edit-mode-active [contenteditable="true"]:focus {
+            outline: 2px solid #ff007f !important;
+            background: rgba(255, 0, 127, 0.15) !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-cyberPink selection:text-white">
+
+    <!-- Interactive Neon Particles Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Admin Edit Mode Bar -->
+    <div id="admin-bar" class="hidden fixed top-0 left-0 right-0 z-50 bg-cyberDark/95 border-b border-neonBlue px-4 py-2 flex items-center justify-between shadow-lg backdrop-blur">
+        <div class="flex items-center gap-2 text-xs font-mono text-neonBlue">
+            <span class="inline-block w-2 h-2 rounded-full bg-neonBlue animate-ping"></span>
+            <span>ADMIN UNLOCKED &bull; Edit Mode Active</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="saveAdminEdits()" class="bg-neonBlue text-cyberDark font-bold text-xs px-3 py-1 rounded shadow glow-blue hover:bg-white transition-all">
+                💾 Save Changes
+            </button>
+            <button onclick="resetAdminEdits()" class="bg-neonRose/20 border border-neonRose text-neonRose font-bold text-xs px-2.5 py-1 rounded hover:bg-neonRose hover:text-white transition-all">
+                ↺ Reset Default
+            </button>
+            <button onclick="lockAdminMode()" class="bg-cyberPink text-white font-bold text-xs px-2.5 py-1 rounded shadow glow-pink hover:bg-white hover:text-cyberDark transition-all">
+                🔒 Lock
+            </button>
+        </div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 bg-cyberDark/80 backdrop-blur border-b border-cyberPink/30 px-4 py-3">
+        <div class="max-w-3xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-cyberPink font-bold">♥</span>
+                <span class="font-serif font-bold text-xs sm:text-sm tracking-wider uppercase text-textLight glow-pink" id="txt-header-title" data-key="headerTitle">
+                    Easy outside &bull; Analytical inside
+                </span>
+            </div>
+
+            <!-- Controls: Language Toggle & Admin Lock -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center bg-cyberCard border border-cyberPink/40 rounded-full p-0.5 text-xs font-mono">
+                    <button id="btn-lang-en" onclick="setLang('en')" class="px-3 py-0.5 rounded-full text-neonBlue bg-cyberPink/20 transition-all">EN</button>
+                    <button id="btn-lang-lt" onclick="setLang('lt')" class="px-3 py-0.5 rounded-full text-textDim hover:text-neonBlue transition-all">LT</button>
+                </div>
+
+                <button onclick="promptAdminPassword()" id="btn-lock-toggle" title="Admin Edit Mode" class="p-1.5 rounded-lg border border-neonBlue/40 bg-cyberCard text-neonBlue hover:border-cyberPink hover:text-cyberPink transition-all">
+                    🔒
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-3xl mx-auto px-4 py-8 sm:py-12 space-y-10 flex-grow w-full relative z-10">
+
+        <!-- Hero Intro Section -->
+        <section class="space-y-6">
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+                <span class="px-3 py-1 rounded-full bg-cyberPink/20 border border-cyberPink text-cyberPink glow-pink" id="tag-1" data-key="tag1">
+                    👨‍💻 App & Game Dev
+                </span>
+                <span class="px-3 py-1 rounded-full bg-neonBlue/10 border border-neonBlue text-neonBlue glow-blue" id="tag-2" data-key="tag2">
+                    😄 INFJ-A 6w7 + Humor
+                </span>
+                <span class="px-3 py-1 rounded-full bg-neonOrange/10 border border-neonOrange text-neonOrange glow-orange" id="tag-3" data-key="tag3">
+                    🏡 Traditional Values
+                </span>
+            </div>
+
+            <h1 class="font-serif text-2xl sm:text-4xl text-textLight leading-snug" id="txt-hero-heading" data-key="heroHeading">
+                Hey. On the outside, I keep things casual and simple. On the inside, I'm constantly analyzing and building stuff.
+            </h1>
+
+            <!-- Direct Quotes Framed Card -->
+            <div class="cyber-card p-6 sm:p-8 space-y-4">
+                <div class="cyber-inner p-5 space-y-3 bg-cyberDark/60">
+                    <div class="flex items-center justify-between text-xs font-mono font-bold text-cyberPink border-b border-cyberPink/30 pb-2">
+                        <span id="txt-card-label" data-key="cardLabel">📜 Direct Quotes / Notes</span>
+                        <span>o(^-^o)(o^-^)o</span>
+                    </div>
+
+                    <div class="space-y-2 text-sm sm:text-base text-textLight font-light italic leading-relaxed">
+                        <p id="q-1" data-key="q1">“Labas. Mano pliusai... hmmm... būtum tu, jeigu norėtum :)”</p>
+                        <p id="q-2" data-key="q2">“Esu introvertas, INFJ-A 6w7 (mėgstu padėti žmonėms, esu geras ir pan. nuobodūs dalykai).”</p>
+                        <p id="q-3" data-key="q3">“Mėgstu humorą, įrodymas: 🤣🤣🤣🤣🤣🤣🤣”</p>
+                        <p id="q-4" data-key="q4">“Amm... tu 🫵 žiūrėk čia, susikaupk... oho 📸 kokia tu graži 😱”</p>
+                        <p id="q-5" data-key="q5">“Esu tradicinis. Norėčiau, kad būtum savimi — nesvarbu, ar esi tyli, ar su kumščiu dantis skaldai.”</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-cyberPink/30 flex flex-wrap items-center justify-between gap-2 not-italic">
+                        <span class="font-semibold text-neonRose text-sm sm:text-base glow-pink">
+                            Tu + aš = 👨‍👩‍👧🏡🗺 ± 💶👑🏴‍☠️
+                        </span>
+                        <span class="text-xs font-mono text-neonOrange bg-neonOrange/10 border border-neonOrange/30 px-2.5 py-1 rounded-full" id="txt-tag-dual" data-key="tagDual">
+                            Simple & Direct
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-xs sm:text-sm text-textDim leading-relaxed bg-cyberCard/80 p-4 rounded-xl border border-neonBlue/30" id="txt-hero-sub" data-key="heroSub">
+                No fake masks or weird social games. I like laughing, writing stories, making indie tools like <em>BlockyForward</em>, and living a quiet, peaceful life.
+            </p>
+        </section>
+
+        <!-- Section 1: How I Work -->
+        <section class="space-y-4">
+            <div class="flex items-center gap-2 text-neonBlue font-serif font-bold text-lg glow-blue">
+                <span>♥</span>
+                <h2 id="sec1-title" data-key="sec1Title">1. How I Actually Operate</h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="p-5 rounded-2xl bg-cyberCard border border-cyberPink/30 space-y-2">
+                    <div class="flex items-center gap-2 text-cyberPink font-semibold text-sm">
+                        <span>🎮</span> <span id="c1-head" data-key="c1Head">App & Game Dev</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-textDim leading-relaxed" id="c1-text" data-key="c1Text">
+                        I'm an independent developer building my own apps (like my lifeRPG tracker) and writing story games. I turn ideas into clean working systems.
+                    </p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-cyberCard border border-cyberPink/30 space-y-2">
+                    <div class="flex items-center gap-2 text-neonOrange font-semibold text-sm">
+                        <span>💰</span> <span id="c2-head" data-key="c2Head">Sensible Budgeting</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-textDim leading-relaxed" id="c2-text" data-key="c2Text">
+                        I keep expenses low and logical (~150€/mo when needed). No spending money on useless junk or showing off. Stability comes first.
+                    </p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-cyberCard border border-cyberPink/30 space-y-2">
+                    <div class="flex items-center gap-2 text-neonBlue font-semibold text-sm">
+                        <span>🌿</span> <span id="c3-head" data-key="c3Head">Clean Living</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-textDim leading-relaxed" id="c3-text" data-key="c3Text">
+                        No smoking, no drinking, no clubbing or fake drama. I prefer long walks, good music, coding, and cozy evenings at home.
+                    </p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-cyberCard border border-cyberPink/30 space-y-2">
+                    <div class="flex items-center gap-2 text-neonRose font-semibold text-sm">
+                        <span>🗣️</span> <span id="c4-head" data-key="c4Head">Straightforward Talk</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-textDim leading-relaxed" id="c4-text" data-key="c4Text">
+                        I don't do awkward formality or passive-aggressive hints. If something is up, just say it directly and we solve it together calmly.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: What Fits Here -->
+        <section class="space-y-4">
+            <div class="flex items-center gap-2 text-cyberPink font-serif font-bold text-lg glow-pink">
+                <span>♥</span>
+                <h2 id="sec2-title" data-key="sec2Title">2. What Fits Here?</h2>
+            </div>
+
+            <div class="cyber-card p-6 space-y-3">
+                <div class="cyber-inner p-4 bg-cyberDark/70 space-y-3">
+                    <div class="flex items-start gap-3">
+                        <span class="text-lg">✨</span>
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-semibold text-textLight" id="fit1-head" data-key="fit1Head">Being 100% Yourself</h3>
+                            <p class="text-xs text-textDim mt-0.5 leading-relaxed" id="fit1-text" data-key="fit1Text">Whether you're naturally quiet or loud, soft-spoken or strong — no fake masks required.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <span class="text-lg">🏡</span>
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-semibold text-textLight" id="fit2-head" data-key="fit2Head">Peaceful Co-existence</h3>
+                            <p class="text-xs text-textDim mt-0.5 leading-relaxed" id="fit2-text" data-key="fit2Text">You're happy doing your own thing (reading, drawing, studying) in the same room while I code or write.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <span class="text-lg">🤝</span>
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-semibold text-textLight" id="fit3-head" data-key="fit3Head">Traditional Clean Standards</h3>
+                            <p class="text-xs text-textDim mt-0.5 leading-relaxed" id="fit3-text" data-key="fit3Text">Looking for a real, long-term partnership built on trust, respect, and mutual support (👨‍👩‍👧🏡🗺).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Interactive Compatibility Quiz -->
+        <section class="space-y-4">
+            <div class="flex items-center gap-2 text-neonOrange font-serif font-bold text-lg glow-orange">
+                <span>♥</span>
+                <h2 id="sec3-title" data-key="sec3Title">3. Quick Vibe Check</h2>
+            </div>
+
+            <div class="cyber-card p-6 space-y-5">
+                <p class="text-xs sm:text-sm text-textDim" id="quiz-sub" data-key="quizSub">Check off what feels true for you:</p>
+
+                <div id="quiz-list" class="space-y-2.5"></div>
+
+                <div class="pt-4 border-t border-cyberPink/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                        <span class="text-xs text-textDim block" id="txt-score-lbl" data-key="scoreLbl">Result:</span>
+                        <span id="score-text" class="text-sm sm:text-base font-bold text-neonBlue glow-blue">0 / 5 Matches</span>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="copyQuizScore()" class="btn-cyber-pink text-xs px-4 py-2 rounded-full font-medium shadow-xs flex-1 sm:flex-none">
+                            <span id="btn-copy-quiz" data-key="copyQuiz">Copy Score</span>
+                        </button>
+                        <button onclick="resetQuiz()" class="text-xs px-3 py-2 rounded-full bg-cyberCard border border-cyberPink/40 text-textDim hover:text-white">
+                            <span id="btn-reset-quiz" data-key="resetQuiz">Reset</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="quiz-feedback" class="p-3.5 rounded-xl bg-cyberDark/80 border border-cyberPink/30 text-xs text-textDim leading-relaxed">
+                    Select options above to see feedback.
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Direct Note Form -->
+        <section class="space-y-4">
+            <div class="flex items-center gap-2 text-neonRose font-serif font-bold text-lg glow-pink">
+                <span>♥</span>
+                <h2 id="sec4-title" data-key="sec4Title">4. Send a Note</h2>
+            </div>
+
+            <div class="cyber-card p-6 space-y-4">
+                <div class="cyber-inner p-4 bg-cyberDark/70 space-y-3">
+                    <p class="text-xs sm:text-sm text-textDim" id="note-desc" data-key="noteDesc">
+                        If this weird mix of sarcastic humor, quiet developer focus, and simple traditional values sounds good, write a note below:
+                    </p>
+
+                    <form onsubmit="handleLetterSubmit(event)" class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input type="text" id="inp-name" required placeholder="Name or Nickname" class="w-full px-3.5 py-2 rounded-lg text-xs sm:text-sm cyber-input">
+                            <input type="text" id="inp-contact" required placeholder="Email / Instagram / Handle" class="w-full px-3.5 py-2 rounded-lg text-xs sm:text-sm cyber-input">
+                        </div>
+                        <textarea id="inp-msg" rows="3" required placeholder="Labas... 📸" class="w-full px-3.5 py-2 rounded-lg text-xs sm:text-sm cyber-input resize-none"></textarea>
+
+                        <div class="flex items-center justify-between">
+                            <span id="letter-copied-msg" class="text-xs text-neonBlue font-mono font-medium hidden glow-blue">
+                                ✓ Formatted message copied to clipboard!
+                            </span>
+                            <button type="submit" class="btn-cyber-pink text-xs px-5 py-2 rounded-full font-medium ml-auto">
+                                <span id="btn-submit-note" data-key="submitNote">Copy Formatted Note</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-cyberPink/30 py-6 px-4 text-center text-xs text-textDim bg-cyberDark/90 relative z-10">
+        <p id="txt-footer" data-key="footer">Easy Outside &bull; Analytical Inside &bull; INFJ-A &bull; o(^-^o)(o^-^)o</p>
+    </footer>
+
+    <!-- Password Modal -->
+    <div id="pwd-modal" class="hidden fixed inset-0 z-50 bg-cyberDark/90 backdrop-blur flex items-center justify-center p-4">
+        <div class="cyber-card p-6 max-w-sm w-full space-y-4">
+            <h3 class="font-serif text-lg font-bold text-neonBlue glow-blue">🔒 Admin Unlock</h3>
+            <p class="text-xs text-textDim">Enter password to unlock live page editing:</p>
+            <input type="password" id="pwd-input" placeholder="Enter password..." class="w-full px-3.5 py-2 rounded-lg text-xs cyber-input font-mono">
+            <div id="pwd-error" class="text-xs text-neonRose hidden">Invalid password. Try again.</div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closePwdModal()" class="px-3 py-1.5 rounded text-xs text-textDim border border-cyberPink/30">Cancel</button>
+                <button onclick="verifyAdminPassword()" class="btn-cyber-pink px-4 py-1.5 rounded text-xs">Unlock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Engine -->
+    <script>
+        let isAdmin = false;
+        let lang = 'en';
+        let quizState = [false, false, false, false, false];
+
+        const defaultDict = {
+            en: {
+                headerTitle: "Easy outside • Analytical inside",
+                tag1: "App & Game Dev",
+                tag2: "INFJ-A 6w7 + Humor",
+                tag3: "Traditional Values",
+                heroHeading: "Hey. On the outside, I keep things casual and simple. On the inside, I'm constantly analyzing and building stuff.",
+                cardLabel: "📜 Direct Quotes / Notes",
+                tagDual: "Simple & Direct",
+                heroSub: "No fake masks or weird social games. I like laughing, writing stories, making indie tools like BlockyForward, and living a quiet, peaceful life.",
+                
+                q1: "“Labas. Mano pliusai... hmmm... būtum tu, jeigu norėtum :)”",
+                q2: "“Esu introvertas, INFJ-A 6w7 (mėgstu padėti žmonėms, esu geras ir pan. nuobodūs dalykai).”",
+                q3: "“Mėgstu humorą, įrodymas: 🤣🤣🤣🤣🤣🤣🤣”",
+                q4: "“Amm... tu 🫵 žiūrėk čia, susikaupk... oho 📸 kokia tu graži 😱”",
+                q5: "“Esu tradicinis. Norėčiau, kad būtum savimi — nesvarbu, ar esi tyli, ar su kumščiu dantis skaldai.”",
+
+                sec1Title: "1. How I Actually Operate",
+                c1Head: "App & Game Dev",
+                c1Text: "I'm an independent developer building my own apps (like my lifeRPG tracker) and writing story games. I turn ideas into clean working systems.",
+                c2Head: "Sensible Budgeting",
+                c2Text: "I keep expenses low and logical (~150€/mo when needed). No spending money on useless junk or showing off. Stability comes first.",
+                c3Head: "Clean Living",
+                c3Text: "No smoking, no drinking, no clubbing or fake drama. I prefer long walks, good music, coding, and cozy evenings at home.",
+                c4Head: "Straightforward Talk",
+                c4Text: "I don't do awkward formality or passive-aggressive hints. If something is up, just say it directly and we solve it together calmly.",
+
+                sec2Title: "2. What Fits Here?",
+                fit1Head: "Being 100% Yourself",
+                fit1Text: "Whether you're naturally quiet or loud, soft-spoken or strong — no fake masks required.",
+                fit2Head: "Peaceful Co-existence",
+                fit2Text: "You're happy doing your own thing (reading, drawing, studying) in the same room while I code or write.",
+                fit3Head: "Traditional Clean Standards",
+                fit3Text: "Looking for a real, long-term partnership built on trust, respect, and mutual support (👨‍👩‍👧🏡🗺).",
+
+                sec3Title: "3. Quick Vibe Check",
+                quizSub: "Check off what feels true for you:",
+                scoreLbl: "Result:",
+                copyQuiz: "Copy Score",
+                resetQuiz: "Reset",
+
+                sec4Title: "4. Send a Note",
+                noteDesc: "If this weird mix of sarcastic humor, quiet developer focus, and simple traditional values sounds good, write a note below:",
+                submitNote: "Copy Formatted Note",
+                footer: "Easy Outside • Analytical Inside • INFJ-A • o(^-^o)(o^-^)o",
+
+                questions: [
+                    "I appreciate casual/sarcastic humor and don't take simple things too seriously.",
+                    "I prefer cozy home evenings and long walks over partying, alcohol, or clubbing.",
+                    "I like direct, honest communication without silent treatments or mind games.",
+                    "I value someone who builds real projects, manages money wisely, and thinks logically.",
+                    "I like the simple traditional goal: Tu + aš = 👨‍👩‍👧🏡🗺 (Building a quiet, honest life together)."
+                ],
+                feedbacks: [
+                    "Check a few boxes above to see your result!",
+                    "Low match — looks like we might have different styles, but that's completely fine!",
+                    "Decent match! You share a nice mix of humor, directness, and appreciation for a quiet life.",
+                    "High match! 📸 Oho... You fit the exact vibe: humor, warmth, traditional values, and zero drama. Say labas!"
+                ]
+            },
+            lt: {
+                headerTitle: "Paprastas išorėje • Gilus viduje",
+                tag1: "Programėlės ir Žaidimai",
+                tag2: "INFJ-A 6w7 + Humoras",
+                tag3: "Tradicinės Vertybės",
+                heroHeading: "Labas. Išorėje viską laikau paprastai ir lengvai. Viduje — nuolat analizuoju ir kuriu dalykus.",
+                cardLabel: "📜 Citatos / Mintys",
+                tagDual: "Tiesiogiai ir Paprastai",
+                heroSub: "Jokių vaidybų ar keistų žaidimų. Mėgstu juoktis, rašyti istorijas, kurti savo programėles (kaip BlockyForward) ir gyventi ramų gyvenimą.",
+
+                q1: "“Labas. Mano pliusai... hmmm... būtum tu, jeigu norėtum :)”",
+                q2: "“Esu introvertas, INFJ-A 6w7 (mėgstu padėti žmonėms, esu geras ir pan. nuobodūs dalykai).”",
+                q3: "“Mėgstu humorą, įrodymas: 🤣🤣🤣🤣🤣🤣🤣”",
+                q4: "“Amm... tu 🫵 žiūrėk čia, susikaupk... oho 📸 kokia tu graži 😱”",
+                q5: "“Esu tradicinis. Norėčiau, kad būtum savimi — nesvarbu, ar esi tyli, ar su kumščiu dantis skaldai.”",
+
+                sec1Title: "1. Kaip Aš Veikiu",
+                c1Head: "Programėlės ir Žaidimai",
+                c1Text: "Kuriu savo programas (pvz., savo gyvenimo sistemą) ir rašau žaidimų istorijas. Mėgstu paversti idėjas veikiančiomis sistemomis.",
+                c2Head: "Protingas Biudžetas",
+                c2Text: "Išlaidos žemos ir logiškos (~150€/mėn kai reikia). Jokio švaistymo nesąmonėms ar rodymuisi prieš kitus. Stabilumas pirmoje vietoje.",
+                c3Head: "Švarus Gyvenimo Būdas",
+                c3Text: "Jokio rūkymo, alkoholio ar klubų dramų. Teikiu pirmenybę pasivaikščiojimams, gerai muzikai, programavimui ir jaukiems vakarams.",
+                c4Head: "Tiesioginė Kalba",
+                c4Text: "Nemėgstu formalumų ar pasyvios agresijos užuominų. Jei kažkas ne taip — pasakai tiesiai ir ramiai viską išsprendžiam.",
+
+                sec2Title: "2. Kas Čia Tinka?",
+                fit1Head: "Buvimas 100% Savimi",
+                fit1Text: "Nesvarbu, ar esi tyli, ar garsiai reiški nuomonę — jokių kaukų daryti nereikia.",
+                fit2Head: "Rami Būtis Kartu",
+                fit2Text: "Esi laiminga darydama savo reikalus (skaitydama, piešdama) tame pačiame kambaryje, kol aš programuoju ar rašau.",
+                fit3Head: "Tradiciniai Standartai",
+                fit3Text: "Ieškai tikro, ilgalaikio ryšio, pagrįsto pasitikėjimu, pagarba ir pagalba vienas kitam (👨‍👩‍👧🏡🗺).",
+
+                sec3Title: "3. Greitas Testas",
+                quizSub: "Pažymėk tai, kas tau tinka:",
+                scoreLbl: "Rezultatas:",
+                copyQuiz: "Kopijuoti Rezultatą",
+                resetQuiz: "Iš naujo",
+
+                sec4Title: "4. Parašyk Žinutę",
+                noteDesc: "Jei šis sarkastiško humoro, ramaus kūrimo ir tradicinių vertybių derinys skamba gerai — parašyk žinutę žemiau:",
+                submitNote: "Kopijuoti Žinutę",
+                footer: "Paprastas Išorėje • Gilus Viduje • INFJ-A • o(^-^o)(o^-^)o",
+
+                questions: [
+                    "Aš mėgstu sarkastišką humorą ir neimu paprastų dalykų per daug rimtai.",
+                    "Aš teikiu pirmenybę jaukiems vakarams namuose ir pasivaikščiojimams vietoje klubų ir alkoholio.",
+                    "Mėgstu tiesioginį, sąžiningą bendravimą be tildymo ar žaidimų.",
+                    "Vertinu žmogų, kuris kuria tikrus projektus, protingai valdo pinigus ir mąsto logiškai.",
+                    "Man patinka tikslas: Tu + aš = 👨‍👩‍👧🏡🗺 (Kurti ramų, sąžiningą gyvenimą kartu)."
+                ],
+                feedbacks: [
+                    "Pažymėk kelis punktus viršuje!",
+                    "Nedidelis sutapimas — atrodo, kad mūsų stiliai skirtingi, bet tai visiškai normalu!",
+                    "Geras sutapimas! Daliniesi puikiu humoro, tiesumo ir ramaus gyvenimo vertinimo deriniu.",
+                    "Aukštas sutapimas! 📸 Oho... Visiškai atitinki bangų dažnį: humoras, šiluma, tradicinės vertybės ir jokių dramų. Parašyk labas!"
+                ]
+            }
+        };
+
+        let activeDict = JSON.parse(localStorage.getItem('cyberAppDict')) || defaultDict;
+
+        // Case-insensitive direct string matching for 'Kalejimas345'
+        function verifyAdminPassword() {
+            const pwd = document.getElementById('pwd-input').value.trim();
+
+            if (pwd.toLowerCase() === 'kalejimas345') {
+                isAdmin = true;
+                localStorage.setItem('adminUnlocked', 'true');
+                closePwdModal();
+                enableAdminMode();
+            } else {
+                document.getElementById('pwd-error').classList.remove('hidden');
+            }
+        }
+
+        function promptAdminPassword() {
+            if (isAdmin) {
+                lockAdminMode();
+                return;
+            }
+            document.getElementById('pwd-input').value = '';
+            document.getElementById('pwd-error').classList.add('hidden');
+            document.getElementById('pwd-modal').classList.remove('hidden');
+        }
+
+        function closePwdModal() {
+            document.getElementById('pwd-modal').classList.add('hidden');
+        }
+
+        function enableAdminMode() {
+            document.getElementById('admin-bar').classList.remove('hidden');
+            document.body.classList.add('edit-mode-active');
+            
+            document.querySelectorAll('[data-key]').forEach(el => {
+                el.setAttribute('contenteditable', 'true');
+            });
+        }
+
+        function lockAdminMode() {
+            isAdmin = false;
+            localStorage.removeItem('adminUnlocked');
+            document.getElementById('admin-bar').classList.add('hidden');
+            document.body.classList.remove('edit-mode-active');
+            
+            document.querySelectorAll('[data-key]').forEach(el => {
+                el.removeAttribute('contenteditable');
+            });
+        }
+
+        function saveAdminEdits() {
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                activeDict[lang][key] = el.innerText;
+            });
+
+            localStorage.setItem('cyberAppDict', JSON.stringify(activeDict));
+            alert("✓ All custom edits saved to local storage!");
+        }
+
+        function resetAdminEdits() {
+            if (confirm("Reset all text back to original default settings?")) {
+                activeDict = JSON.parse(JSON.stringify(defaultDict));
+                localStorage.removeItem('cyberAppDict');
+                setLang(lang);
+            }
+        }
+
+        function setLang(l) {
+            lang = l;
+            const t = activeDict[l];
+
+            document.getElementById('btn-lang-en').className = l === 'en' ? 'px-3 py-0.5 rounded-full text-neonBlue bg-cyberPink/20 transition-all' : 'px-3 py-0.5 rounded-full text-textDim hover:text-neonBlue transition-all';
+            document.getElementById('btn-lang-lt').className = l === 'lt' ? 'px-3 py-0.5 rounded-full text-neonBlue bg-cyberPink/20 transition-all' : 'px-3 py-0.5 rounded-full text-textDim hover:text-neonBlue transition-all';
+
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (t[key]) el.innerText = t[key];
+            });
+
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            const list = document.getElementById('quiz-list');
+            list.innerHTML = '';
+
+            const questions = activeDict[lang].questions;
+
+            questions.forEach((q, idx) => {
+                const row = document.createElement('div');
+                row.className = `p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3 text-xs sm:text-sm ${
+                    quizState[idx] 
+                        ? 'bg-cyberCard border-neonBlue text-textLight shadow-xs font-medium' 
+                        : 'bg-cyberDark/60 border-cyberPink/30 text-textDim hover:border-neonBlue/50'
+                }`;
+
+                row.onclick = () => {
+                    quizState[idx] = !quizState[idx];
+                    renderQuiz();
+                };
+
+                row.innerHTML = `
+                    <div class="mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        quizState[idx] ? 'bg-neonBlue border-neonBlue text-cyberDark font-bold' : 'border-cyberPink/40 bg-cyberDark'
+                    }">
+                        ${quizState[idx] ? '✓' : ''}
+                    </div>
+                    <span class="leading-relaxed select-none">${q}</span>
+                `;
+                list.appendChild(row);
+            });
+
+            updateQuizFeedback();
+        }
+
+        function updateQuizFeedback() {
+            const count = quizState.filter(Boolean).length;
+            document.getElementById('score-text').textContent = `${count} / ${quizState.length} ${lang === 'lt' ? 'Sutapimai' : 'Matches'}`;
+
+            const feedbackEl = document.getElementById('quiz-feedback');
+            const fb = activeDict[lang].feedbacks;
+
+            if (count === 0) feedbackEl.textContent = fb[0];
+            else if (count <= 2) feedbackEl.textContent = fb[1];
+            else if (count <= 4) feedbackEl.textContent = fb[2];
+            else feedbackEl.textContent = fb[3];
+        }
+
+        function resetQuiz() {
+            quizState = [false, false, false, false, false];
+            renderQuiz();
+        }
+
+        function copyQuizScore() {
+            const count = quizState.filter(Boolean).length;
+            const txt = `Vibe Check Score: ${count}/${quizState.length} (${lang.toUpperCase()})`;
+            copyTextToClipboard(txt);
+            
+            const btn = document.getElementById('btn-copy-quiz');
+            const orig = btn.textContent;
+            btn.textContent = lang === 'lt' ? 'Nukopijuota!' : 'Copied!';
+            setTimeout(() => btn.textContent = orig, 2000);
+        }
+
+        function handleLetterSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('inp-name').value;
+            const contact = document.getElementById('inp-contact').value;
+            const msg = document.getElementById('inp-msg').value;
+
+            const text = `From: ${name}\nContact: ${contact}\n\nMessage:\n${msg}`;
+            copyTextToClipboard(text);
+
+            const msgEl = document.getElementById('letter-copied-msg');
+            msgEl.classList.remove('hidden');
+            setTimeout(() => msgEl.classList.add('hidden'), 3500);
+        }
+
+        function copyTextToClipboard(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+        }
+
+        /* Particle Canvas Background Simulation */
+        function initBackgroundCanvas() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            const particles = [];
+            const colors = ['#ff007f', '#00f3ff', '#ff8c00', '#ff2a5f'];
+
+            for (let i = 0; i < 45; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    r: Math.random() * 2 + 1,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: (Math.random() - 0.5) * 0.4
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    if (p.x < 0) p.x = width;
+                    if (p.x > width) p.x = 0;
+                    if (p.y < 0) p.y = height;
+                    if (p.y > height) p.y = 0;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = p.color;
+                    ctx.fill();
+                });
+
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        window.onload = () => {
+            initBackgroundCanvas();
+            setLang('en');
+
+            // Auto-unlock if previously logged in
+            if (localStorage.getItem('adminUnlocked') === 'true') {
+                isAdmin = true;
+                enableAdminMode();
+            }
+        };
+    </script>
+</body>
+</html>
